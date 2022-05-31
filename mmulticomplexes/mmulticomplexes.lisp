@@ -5,7 +5,7 @@
 
 (IN-PACKAGE #:cat)
 
-(PROVIDE "mmulticomplexes")
+(PROVIDE "bicomplexes")
 
 ;;Print keycons? No sé lo que hace.
 
@@ -219,22 +219,6 @@ NIL
   (loop repeat (/ (length list) m) collect
        (loop repeat m collect (pop list))))
        
-       			
-;;(DEFUN LISTMINORS (n m l)
-;;	(declare (type fixnum n m)
-;;		(type list l))
-;;		(when (minusp n)
-;;			(return-from listminors nil))
-;;		(if (eql m 1)
-;;			(mapcar 
-;;				#'(lambda (lista)
-;;					(append lista n)
-;;				)
-;;			l)
-;;			(listminors (- n i) (- m 1) (mapcar #'(lambda (i)(mapcar #'(lambda (lista)(append lista i))l))(<a-b> 0 (+ 1 n)))
-;;			)
-;;		)
-;;)
 
 
 #|
@@ -341,20 +325,49 @@ NIL
 				:basis (MMC-BASIS mmcbasis m)
 				:intr-dffr (MMC-INTR-DFFR l)
 				:strt :gnrt
+				:bsgn nil
 				:orgn orgn)))
 			(declare (type chain-complex chcm))
-			(slot-makunbound chcm 'bsgn)
 		chcm)))
 
-#|
-(setf mmc (Build-Mmcm :mmcbasis #'bas :l (list (list #'dif1 (list -1 0)) (list #'dif2 (list 0 -1))) :cmpr #'s-cmpr 
+#|(These are computed with the first ones of the previous examples: the ones with dimension 2.
+(setf mmc (Build-Mmcm :mmcbasis #'bas :m 2 :l (list (list #'dif1 (list -1 0)) (list #'dif2 (list 0 -1))) :cmpr #'s-cmpr 
                      :orgn '(MMC-test)))
+[K1 Chain-Complex]
+
+(basis mmc)
+#<interpreted function (HARLEQUIN-COMMON-LISP:SUBFUNCTION (FLET BAS) :UNKNOWN) 423000888C>
+
+(basis mmc 1)
+((:MMCGNRT (0 1) A) (:MMCGNRT (1 0) B))
+
 (dotimes (i 5)
   (print (basis mmc i)))
-(cmpr mmc (build-MmcGnrt 0 1 'a) (build-MmcGnrt 1 1 'c))
 
-(? mmc (? bc 2 (build-MmcGnrt 1 1 'c))) 
-(? mmc 2 (build-MmcGnrt 2 0 'd))
+NIL 
+((:MMCGNRT (0 1) A) (:MMCGNRT (1 0) B)) 
+((:MMCGNRT (1 1) C) (:MMCGNRT (2 0) D)) 
+NIL 
+NIL 
+NIL
+
+
+(cmpr mmc (build-MmcGnrt (list 0 1) 'a) (build-MmcGnrt (list 1 1) 'c))
+:LESS
+
+
+
+(? mmc (? mmc 2 (build-MmcGnrt (list 1 1) 'c))) 
+
+----------------------------------------------------------------------{CMBN 0}
+------------------------------------------------------------------------------
+
+(? mmc 2 (build-MmcGnrt (list 2 0) 'd))
+
+----------------------------------------------------------------------{CMBN 1}
+<2 * (MMCGNRT (1 0) B)>
+------------------------------------------------------------------------------
+
 (? mmc 2 '(:MmcGnrt (1 . 1) c))
 (? mmc (cmbn 2 3 '(:MmcGnrt (1 . 1) c)))
 (? mmc 1 (build-MmcGnrt 0  1 'a))
@@ -368,20 +381,22 @@ NIL
 ;; Filtration index function of a Multicomplex.
 (setf MMCflin 
 	#'(lambda (degr gnrt)
-	(declare 
-		(type fixnum degr)
-		(type MmcGnrt gnrt))
+	(declare (type MmcGnrt gnrt))
 	(the list 
-		(let ((l (cdr (MmcGnrt-Mdegr gnrt)))) ;; (reverse (cdr (reverse (MmcGnrt-Mdegr gnrt))))
+		(let ((l (list (reverse (cdr (reverse (MmcGnrt-Mdegr gnrt))))))) ;; (cdr (MmcGnrt-Mdegr gnrt))
 		l))))
 		
 		
 		
 
 #|
-(funcall MMCflin 5 (build-bcgnrt 2 3 'a))
-(funcall MMCflin 7 (build-bcgnrt 6 1 'c))
+(funcall MMCflin (build-Mmcgnrt (list 2 3) 'a))
+(funcall MMCflin (build-Mmcgnrt (list 3 4 5) 'c))
 |# 
+
+
+
+
 
 
 ;;También se podría pasar el m como argumento, no sería muy diferente a esto.		
@@ -393,37 +408,36 @@ NIL
 		#'(lambda (l1 l2)
 			(declare (type list l1 l2))
 				(let ((m (length l1))
-					(m1 (lenght l2)))
+					(m1 (length l2))
+					(Ma NIL)
+					(me nil))
 					(if (= m m1)
 						(progn
 							(do(
-								(x (first l1))
-								(y (first l2))
-								(l1 (cdr l1))
-								(l2 (cdr l2))
-								(= (length l1) 0))
-								((if (<= x y);;(\= x y)
-									(if (< x y)
-										(progn
-											(setq rslt (- rslt 1))
-											(setq c 'T)
-										)
-										(setq rslt (+ rslt 1))
-									)
-								))
-							)
-							(if (= rslt m)
-								:less
-								(if (= rslt -m)
-									:greater
-									(if (and (= rslt 0) (= c 'T))
-										:equal
-										:undefined
+								(x (first l1) (first l1))
+								(y (first l2) (first l2))
+								(l1 (cdr l1) (cdr l1))
+								(l2 (cdr l2) (cdr l2)))
+								((eq x nil))
+								(if (< x y);;(\= x y)
+									(setq me 'T)
+									(if (> x y)
+										(setq Ma 'T)
 									)
 								)
 							)
+							(if Ma
+								(if me
+									:undefined
+									:greater
+								)
+								(if me
+									:less
+									:equal
+								)
+							)
 						)
-						(format t "Las tuplas tienen diferente longitud.")
+						(princ "Las tuplas tienen diferente longitud.")
 					)
 				)
 			)
@@ -444,45 +458,54 @@ NIL
 ;; index of a generator defined as its first degree. 
 (defun CHANGE-MMCM-TO-GFLCC (mmcm) 
 	(declare (type Mmcomplex mmcm))
-	(let* ((flin MMCflin))
-		(declare (type gen-chcm-flin flin))
-		(the FILTERED-CHAIN-COMPLEX
-			(change-chcm-to-gflcc mmcm (zm) mmcflin 'mmcflin))))
+	(the GENERALIZED-FILTERED-CHAIN-COMPLEX
+		(change-chcm-to-gflcc mmcm (zm) mmcflin 'mmcflin)));;Duda: no sé si así o como abajo. En el de los bicomplejos lo hace como abajo, pero entonces se me queda flin sin unsar y me parece una tontería.
+			
+;;(defun CHANGE-MMCM-TO-GFLCC (mmcm) 
+;;	(declare (type Mmcomplex mmcm))
+;;	(let* ((flin MMCflin))
+;;		(declare (type gen-chcm-flin flin))
+;;		(the FILTERED-CHAIN-COMPLEX
+;;			(change-chcm-to-gflcc mmcm (zm) flin 'mmcflin))))
 
 #|
-(defun bas (degr1 degr2)
-  (if (and (= degr1 0) (= degr2 1)) (return-from bas '(a)))
-  (if (and (= degr1 1) (= degr2 0)) (return-from bas '(b)))
-  (if (and (= degr1 1) (= degr2 1)) (return-from bas '(c)))
-  (if (and (= degr1 2) (= degr2 0))  (return-from bas '(d)))
-  (return-from bas nil))
+(defun bas (mindex)
+	(let ((degr1 (first mindex))
+		(degr2 (second mindex)))
+		(if (and (= degr1 0) (= degr2 1)) (return-from bas '(a)))
+		(if (and (= degr1 1) (= degr2 0)) (return-from bas '(b)))
+		(if (and (= degr1 1) (= degr2 1)) (return-from bas '(c)))
+		(if (and (= degr1 2) (= degr2 0)) (return-from bas '(d)))
+		(return-from bas nil)))
 
-(defun dif1 (degr1 degr2 gnrt)
-  (if (and (= degr1 1) (= degr2 1) (eql gnrt 'c)) (return-from dif1 (list (cons 2 'a))))
-  (if (and (= degr1 2) (= degr2 0) (eql gnrt 'd)) (return-from dif1 (list (cons 2 'b))))
-  (return-from dif1 nil))
-(defun dif2 (degr1 degr2 gnrt)
-  (if (and (= degr1 1) (= degr2 1) (eql gnrt 'c)) (return-from dif2 (list (cons 1 'b))))
-  (return-from dif2 nil))
+(defun dif1 (l gnrt)
+	(let ((degr1 (first l))
+		(degr2 (second l)))
+		(if (and (= degr1 1) (= degr2 1) (eql gnrt 'c)) (return-from dif1 (list (cons 2 'a))))
+		(if (and (= degr1 2) (= degr2 0) (eql gnrt 'd)) (return-from dif1 (list (cons 2 'b))))
+  		(return-from dif1 nil)))
+(defun dif2 (l gnrt)
+	(let ((degr1 (first l))
+		(degr2 (second l)))
+		(if (and (= degr1 1) (= degr2 1) (eql gnrt 'c)) (return-from dif2 (list (cons 1 'b))))
+		(return-from dif2 nil)))
 
-(setf bc (Build-Bicm :bcbasis #'bas :dffr1 #'dif1 :dffr2 #'dif2 :cmpr 's-cmpr 
-                     :orgn '(BC-test)))
+(setf mmc (Build-Mmcm :mmcbasis #'bas :m 2 :l (list (list #'dif1 (list -1 0)) (list #'dif2 (list 0 -1))) :cmpr #'s-cmpr :orgn '(MMC-test)))
 
-(change-bicm-to-flcc bc)
-(flin bc 1 (build-bcgnrt 0 1 'a))
-(flin bc (cmbn 2 4 (build-bcgnrt 1 1 'c)))
-(flin bc (cmbn 2 4 (build-bcgnrt 1 1 'c) 2 (build-bcgnrt 2 0 'd)))
-(bigrd-basis bc 1 1)
-(bigrd-basis bc 2 0)
-(fltrd-basis bc 2 1)
-(ordered-basis bc 2)
-(flcc-dffr-mtrx bc 2 1)
-(flcc-dffr-mtrx bc 2 2)
+(change-mmcm-to-gflcc mmc)
+(setf ss1 (change-mmcm-to-gflcc mmc));;mmc sigue siendo un complejo normal.
+(gen-flin ss1 1 (build-Mmcgnrt (list 0 1) 'a))
+((0))
+(gen-fltrd-basis ss1 1 '(0))
+((:MMCGNRT (0 1) A))
+
+
+(mgrd-basis ss1 l) ;;FALTA (tendríamos que darle la lista con el multiindice)
+(ordered-basis bc 2);;No encuentro el análogo
+(gen-flin mmc (cmbn 2 4 (build-Mmcgnrt (list 1 1) 'c)));;No sé si está definido para combinaciones.
+(flin mmc (cmbn 2 4 (build-Mmcgnrt (list 1 1) 'c) 2 (build-Mmcgnrt (list 2 0) 'd)))
 |#			
 
-
-
-;;Construir un multicomplejo con tan solo una diferencial tensorial. En teoría se debe poder utilizar BUILD-MMCM.
 
 ;;Añadir una perturbación a un multicomplejo. Creo que no hace falta.
 ;;Input: An m-multicomplex together with a list of the differentials that we want to add to the multicomplex.
@@ -495,11 +518,9 @@ NIL
 ;;Añadir una perturbación a una equivalencia de homotopía.
 ;;Input: An homotopy equivalence h and a list of morphisms that	
 (DEFUN ADD-PERTURBATION (h delta)
-	(declare (type chain-complex mmcm)
-		(type list delta)
+	(declare (type list delta)
 		(type homotopy-equivalence h))
-	(let* ((mmcm (lbcc h))
-		(pert (mmc-intr-dffr delta)))
+	(let* ((pert (mmc-intr-dffr delta)))
 		(the homotopy-equivalence
 			(let ((hmeq (add h pert)))
 			hmeq))))
@@ -510,32 +531,55 @@ NIL
 ;;; TENSOR PRODUCTS AS M-MULTICOMPLEXES AS TENSOR PRODUCTS ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;Seeing the tensor product generators as m-multicomplexes generators.
 
-;;Recibe un generador de tipo tnpr y lo ve como un mmulticomplejo.		
+	
 (DEFUN GNRT-TNPR-TO-MMULTICOMPLEX (tnpr)
+  "--------------------------------------------------------------[function-doc]
+Entrada: generador de tipo producto tensorial.
+Salida: el generador visto como m-multicomplejo
+
+Utiliza los dos subprogramas siguientes.
+------------------------------------------------------------------------------"
 	(declare (type tnpr tnpr))
 		(the MmcGnrt (build-MmcGnrt (tnpr-multidegree tnpr nil) (tnpr-mmcmgnrt tnpr nil))))
 		
-;;*1: Non recursive alternative for fibrations.
+;;(setf tensor (tnpr 1 'a 2 'b))
+;;(setf tensor (tnpr 1 tensor 2 'c))
+;;<TnPr <TnPr A B> C>
+;;(tnpr-mmcmgnrt tensor nil)
+;;(A B C)
+;;(tnpr-multidegree tensor nil)
+;;(1 2 2)
+;; (gnrt-tnpr-to-mmulticomplex tensor)
+;;(:MMCGNRT (1 2 2) (A B C))
 
-;;Recibe un generador de tipo producto tensorial y una lista. Devuelve el multigrado asociado al producto tensorial, más la lista (arriba le pasamos la lista vacía).				
+			
 (DEFUN TNPR-MULTIDEGREE (tnpr l)
+  "--------------------------------------------------------------[function-doc]
+Entrada: un generador de tipo producto tensorial y una lista
+Salida: Devuelve el multigrado asociado al producto tensorial, más la lista (arriba le pasamos la lista vacía).
+------------------------------------------------------------------------------"
 	(declare (type tnpr tnpr)
 		(type list l))
 	(let ((degr1 (degr1 tnpr))
 		(degr2 (degr2 tnpr))
 		(gnrt1 (gnrt1 tnpr))
 		(gnrt2 (gnrt2 tnpr)))
+		(declare (type fixnum degr1 degr2))
 		(progn
-			(declare (type fixnum degr1 degr2))
 			(if (tnpr-p gnrt1)
-				(setq l (append l (TNPR-MULTIDEGREE gnrt1 l)))
 				(progn
-					(setq l (append l '(degr1)))
+					(setq l (append l (TNPR-MULTIDEGREE gnrt1 l)))
 					(if (tnpr-p gnrt2)
 						(setq l (append l (TNPR-MULTIDEGREE gnrt2 l)))
-						(setq l (append l '(degr2)))
+						(setq l (append l (list degr2)))
+					)
+				)
+				(progn
+					(setq l (append l (list degr1)))
+					(if (tnpr-p gnrt2)
+						(setq l (append l (TNPR-MULTIDEGREE gnrt2 l)))
+						(setq l (append l (list degr2)))
 					)
 				)
 			)
@@ -544,20 +588,35 @@ NIL
 	)
 )
 
-;;Recibe un generador de tipo producto tensorial y una lista. Devuelve el generador asociado al producto tensorial, más la lista (arriba le pasamos la lista vacía).
+
+;;Abajo hay una alternativa no recursiva para fibraciones (*1)
+
 (DEFUN TNPR-MMCMGNRT (tnpr l)
+  "--------------------------------------------------------------[function-doc]
+Entrada: un generador de tipo producto tensorial y una lista
+Salida: el generador asociado al producto tensorial, más la lista (arriba le pasamos la lista vacía).
+------------------------------------------------------------------------------"
 	(declare (type tnpr tnpr)
 		(type list l))
 	(let ((gnrt1 (gnrt1 tnpr))
 		(gnrt2 (gnrt2 tnpr)))
 		(progn
 			(if (tnpr-p gnrt1)
-				(setq l (append l (TNPR-MMCMGNRT gnrt1 l)))
 				(progn
-					(setq l (append l '(gnrt1)))
+					(setq l (append l (TNPR-MMCMGNRT gnrt1 l)))
 					(if (tnpr-p gnrt2)
 						(setq l (append l (TNPR-MMCMGNRT gnrt2 l)))
-						(setq l (append l '(gnrt2)))
+						(setq l (append l (list gnrt2)))
+					)
+				)
+				(progn
+					(if (eql l nil)
+						(setq l (list gnrt1))
+						(setq l (append l (list gnrt1)))
+					)
+					(if (tnpr-p gnrt2)
+						(setq l (append l (TNPR-MMCMGNRT gnrt2 l)))
+						(setq l (append l (list gnrt2)))
 					)
 				)
 			)
@@ -566,74 +625,153 @@ NIL
 	)
 )
 
-;;Recibe un generador de tipo m-multicomplejo del que sabemos que provenía de un producto tensorial. Devuelve el mismo generador como producto tensorial.	Por conveniencia, y dado que el producto tensorial es asociativo, se consruyen los generadores de manera que queda ((((((,),),),),),). Se elige así porque en el caso de las torres de fibraciones está hecho así.
+;;(setf tensor (tnpr 1 'a 2 'b))
+;;<TnPr A B>
+;;(setf tensor (tnpr 1 tensor 2 'c))
+;;<TnPr <TnPr A B> C>
+;;(tnpr-mmcmgnrt tensor nil)
+;;(A B C)
+
 (DEFUN GNRT-MMULTICOMPLEX-TO-TNPR (mmcgnrt)
+  "--------------------------------------------------------------[function-doc]
+Entrada: un generador de tipo m-multicomplejo del que sabemos que provenía de un producto tensorial.
+Salida: el mismo generador como producto tensorial.	Por conveniencia, y dado que el producto tensorial es asociativo, se consruyen los generadores de manera que queda ((((((,),),),),),). Se elige así porque en el caso de las torres de fibraciones está hecho así.
+------------------------------------------------------------------------------"
 	(declare (type mmcgnrt mmcgnrt))
-	(let ((mdgr (rest (mmcgnrt-mdegr mmcgnrt)))
-		(gnrt (rest (mmcgnrt-gnrt mmcgnrt)))
-		(gnrt1 (first (mmcgnrt-mdegr mmcgnrt)))
-		(degr1 (first (mmcgnrt-gnrt mmcgnrt))))
+	(let* ((mdgri (rest (rest (mmcgnrt-mdegr mmcgnrt))))
+		(gnrti (rest (rest (mmcgnrt-gnrt mmcgnrt))))
+		(gnrt1 (first (mmcgnrt-gnrt mmcgnrt)))
+		(degr1 (first (mmcgnrt-mdegr mmcgnrt)))
+		(gnrt2 (second (mmcgnrt-gnrt mmcgnrt)))
+		(degr2 (second (mmcgnrt-mdegr mmcgnrt)))
+		(tensori (tnpr degr1 gnrt1 degr2 gnrt2)))
 		(declare (type list mdgr gnrt l)
 			(type fixnum degr1)
-			(type gnrt gnrt))
-		(progn
-			(do 
+			(type gnrt gnrt1))
+		(if (= (length mdgri) 0)
+			(the tnpr tensori)
+			(the tnpr (do 
 				(
-					(degr2 (first mdgr) (first mdgr))
-					(gnrt2 (first gnrt) (first gnrt))
-					(tnpr (tnpr degr1 gnrt1 degr2 gnrt2) (tnpr degr1 gnrt1 degr2 gnrt2))
-					(degr1 degr1 (+ degr1 degr2))
-					(gnrt1 gnrt1 tnpr)
-					(mdgr mdgr (rest mdgr))
-					(gnrt gnrt (rest mmcgnrt))
-				)
-				(
-					(> (length mdgr) 0);;duda: (mdgr) y si es nil sale, que realmente es lo que quiero.
-				)
-			)
-			(the tnpr tnpr))))
 					
+					(d1 (+ degr1 degr2) (+ d1 d2))
+					(g1 tensori tensor)
+					(tensor (tnpr (+ degr1 degr2) tensori (first mdgri) (first gnrti)) (tnpr d1 g1 d2 g2))
+					(mdgr mdgri (rest mdgr))
+					(gnrt gnrti (rest gnrt))
+					(d2 (second mdgri) (second mdgr))
+					(g2 (second gnrti) (second gnrt))
+					
+				)
+				(
+					(= (length mdgr) 0) tensor
+				)
+			)))))
+
+
+;;Dudas con el do, dudas con el 5 que se pone con el grado del producto tensorial.
+
+;;(setf tensor (tnpr 1 'a 2 'b))
+;;(setf tensor (tnpr 1 tensor 3 'c))
+;;<TnPr <TnPr A B> C>
+;;(setf tensor (tnpr 5 tensor 4 'd));;El 5 ese termina no sirviendo para nada, pero bueno.
+;;<TnPr <TnPr <TnPr A B> C> D>
+;;(setf mmc (gnrt-tnpr-to-mmulticomplex tensor))
+;;(:MMCGNRT (1 2 3 4) (A B C D))
+;;(gnrt-mmulticomplex-to-tnpr mmc)
+;;<TnPr <TnPr <TnPr A B> C> D>
+
+			
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; COMPARISON FUNCTION ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;Entrada: recibe un complejo de cadenas con generadores del tipo producto tensorial. 
-;;Salida: devuelve la misma función de comparación de dicho complejo pero que aplica en objetos de tipo mmmulticomplejo.
+
 (DEFUN MMCM-CMPR-OF-TNPR-1 (chcm)
+  "--------------------------------------------------------------[function-doc]
+Entrada: recibe un complejo de cadenas con generadores del tipo producto tensorial. 
+Salida: devuelve la misma función de comparación de dicho complejo pero que aplica en objetos de tipo mmmulticomplejo.
+------------------------------------------------------------------------------"
 	(declare (type chain-complex chcm))
 	(let ((cmpr-tnpr (cmpr chcm)))
 		(flet ((comp (mmc1 mmc2)
 			(declare (type MmcGnrt mmc1 mmc2))
-			(cmpr-tnpr (gnrt-mmulticomplex-to-tnpr mmc1) (gnrt-mmulticomplex-to-tnpr mmc2))
+			(funcall cmpr-tnpr (gnrt-mmulticomplex-to-tnpr mmc1) (gnrt-mmulticomplex-to-tnpr mmc2))
 			)) 
 			(the cmprf #'comp))))
 			
-;;Entrada: nada.
-;;Salida: una función de comparación para generadores del tipo mmulticomplejo que vienen de producto tensorial. Hacemos lo mismo que con los mmulticomplejos usuales, pero aquí comparamos las listas de generadores del producto tensorial como listas, en vez de pasar una función de comparación diferente.
+
+;;(defun cdelta (dmns)
+;;	(build-chcm
+;;	:cmpr #'l-cmpr
+;;	:basis #'(lambda (n)
+;;	(mapcar #'dlop-int-ext (funcall (delta-n-basis dmns) n)))
+;;		:bsgn '(0)
+;;		:intr-dffr #'(lambda (degr gmsm)
+;;			(make-cmbn
+;;				:degr (1- degr)
+;;				:list (do ((rslt +empty-list+
+;;					(cons (cons sign
+;;						(append
+;;						(subseq gmsm 0 nark)
+;;						(subseq gmsm (1+ nark))))
+;;						rslt))
+;;						(sign 1 (- sign))
+;;					(nark 0 (1+ nark)))
+;;					((> nark degr) rslt))))
+;;		:strt :gnrt
+;;		:orgn ‘(Effective version of C_* delta ,dmns)))
+;;
+;;(setf triangle (cdelta 2))
+;;[K3 Chain-Complex]
+;;(basis triangle 1)
+;;((0 1) (0 2) (1 2))
+;;(setf tpr-triangles (tnsr-prdc triangle triangle))
+;;[K5 Chain-Complex]
+;;(setf base (basis tpr-triangles))
+;;(first (funcall base 1))
+;;<TnPr (0) (0 1)>
+;;(second (funcall base 1))
+;;<TnPr (0) (0 2)>
+;;(funcall (cmpr tpr-triangles) (first (funcall base 1)) (second (funcall base 1)))
+;;:LESS
+;;(funcall (mmcm-cmpr-of-tnpr-1 tpr-triangles) (gnrt-tnpr-to-mmulticomplex (first (funcall base 1)))  (gnrt-tnpr-to-mmulticomplex (second (funcall base 1)))) 
+;;:LESS
+;;(funcall (mmcm-cmpr-of-tnpr-1 tpr-triangles) (gnrt-tnpr-to-mmulticomplex (first (funcall base 1)))  (gnrt-tnpr-to-mmulticomplex (first (funcall base 1)))) 
+;;:EQUAL
+
+
+;;ALTERNATIVA:
+  "--------------------------------------------------------------
 (DEFUN MMCM-CMPR-OF-TNPR-2 ()
+Entrada: nada.
+Salida: una función de comparación para generadores del tipo mmulticomplejo que vienen de producto tensorial. Hacemos lo mismo que con los mmulticomplejos usuales, pero aquí comparamos las listas de generadores del producto tensorial como MMCM-CMPRlistas, en vez de pasar una función de comparación diferente.
 	(flet ((comp (mmc1 mmc2)
 		(declare (type MmcGnrt mmc1 mmc2));;Duda: orden entre let y flet,
-		(let ((cmpr-mmcm (mmc-cmpr (l-cmpr))));;Duda: asignar a una veriable (cmmc-cmpr (l-cmpr)) o ponerlo diréctamente.
+		(let ((cmpr-mmcm (mmc-cmpr l-cmpr)));;Duda: asignar a una veriable (cmmc-cmpr (l-cmpr)) o ponerlo diréctamente.
 			(declare (type cmprf cmpr-mmcm))
 			(funcall cmpr-mmcm mmc1 mmc2))))
 	(the cmprf #'comp));;Duda: también podría poner (the cmprf ....) y definir la función ahí de alguna manera?		
 )
 ;;Esto sería análogo, entiendo, a asumir que l-cmpr es la función de comparación de generadores, y poner en el slot :cmpr de la definición del complejo de cadenas, (mmc-cmpr (l-cmpr))
-
+------------------------------------------------------------------------------"
 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;; BASIS FUNCTION ;;;
 ;;;;;;;;;;;;;;;;;;;;;;	
 
-;;Entrada: complejo de cadenas de tipo producto tensorial.
-;;Salida: base del mismo complejo de cadenas visto como mmulticomplejo.
+
 (DEFUN MMCM-BASIS-OF-TNPR (chcm)
+  "--------------------------------------------------------------[function-doc]
+Entrada: complejo de cadenas de tipo producto tensorial.
+Salida: base del mismo complejo de cadenas visto como mmulticomplejo.
+------------------------------------------------------------------------------"
 	(declare (type chain-complex chcm))
 	(let ((tnprbasis (basis chcm)));;Mejor definir aquí y llamar con funcall o llamar abajo?
+		(declare (type basis tnprbasis))
 		(when (eq tnprbasis :locally-effective)
 			(return-from mmcm-basis-of-tnpr :locally-effective))
-		(declare (type basis tnprbasis))
+		
 		(flet ((bas (degr)
 			(declare (type fixnum degr))
 			(the list 
@@ -645,14 +783,20 @@ NIL
 		(the basis #'bas)))			
 )
 
+;;(basis tpr-triangles 1)
+;;(<TnPr (0) (0 1)> <TnPr (0) (0 2)> <TnPr (0) (1 2)> <TnPr (1) (0 1)> <TnPr (1) (0 2)> <TnPr (1) (1 2)> <TnPr (2) (0 1)> <TnPr (2) (0 2)> <TnPr (2) (1 2)> <TnPr (0 1) (0)> ...)
+;; (funcall (mmcm-basis-of-tnpr tpr-triangles) 1)
+;;(:MMCGNRT (0 1) ((0) (0 1)) :MMCGNRT (0 1) ((0) (0 2)) :MMCGNRT (0 1) ((0) (1 2)) :MMCGNRT ...)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; INTERNAL DIFFERENTIAL FUNCTION ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;;Entrada: complejo de cadenas de tipo producto tensorial.
-;;Salida: diferencial interna del mismo complejo de cadenas visto como multicomplejo.
 (DEFUN MMCM-DFFR-OF-TNPR (chcm)
+  "--------------------------------------------------------------[function-doc]
+Entrada: complejo de cadenas de tipo producto tensorial.
+Salida: diferencial interna del mismo complejo de cadenas visto como multicomplejo.
+------------------------------------------------------------------------------"
 	(declare (type chain-complex chcm))
 	(flet ((dif (degr mmc)
 		(declare (type fixnum degr)
@@ -660,24 +804,42 @@ NIL
 		(the cmbn 
 			(make-cmbn
 				:degr (- degr 1)
-				:list (mapcan #'(lambda (term)
+				:list (mapcar #'(lambda (term)
 						(declare (type term term))
 						(let ((cffc (cffc term))
 							(gnrt (gnrt term)))
 							(declare (type fixnum cffc)
 								(type gnrt gnrt))
-							(term cffc (gnrt-mmulticomplex-to-tnpr gnrt))))
-				(cmbn-list (funcall (dffr chcm degr (gnrt-mmulticomplex-to-tnpr mmc))))));;Esto por ejemplo es diferente a lo de antes. Podría haber declarado dffr chcm como variable.
+							(term cffc (gnrt-tnpr-to-mmulticomplex gnrt))))
+				(cmbn-list (dffr chcm degr (gnrt-mmulticomplex-to-tnpr mmc)))));;Esto por ejemplo es diferente a lo de antes. Podría haber declarado dffr chcm como variable.
 		)))
 	(the intr-mrph #'dif)))		
+
+
+;;(dffr tpr-triangles 1 (first (basis tpr-triangles 1)))
+;;
+;;----------------------------------------------------------------------{CMBN 0}
+;;<1 * <TnPr NIL (0 1)>>
+;;<-1 * <TnPr (0) (0)>>
+;;<1 * <TnPr (0) (1)>>
+;;------------------------------------------------------------------------------
+
+;;(funcall (mmcm-dffr-of-tnpr tpr-triangles) 1 (gnrt-tnpr-to-mmulticomplex (first (basis tpr-triangles 1))))
+;;
+;;----------------------------------------------------------------------{CMBN 0}
+;;<1 * (MMCGNRT (-1 1) (NIL (0 1)))>
+;;<-1 * (MMCGNRT (0 0) ((0) (0)))>
+;;<1 * (MMCGNRT (0 0) ((0) (1)))>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TENSOR PRODUCT AS M-MULTICOMPLEX ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(DEFUN TNPR-TO-MULTICOMPLEX (chcm)
+  "--------------------------------------------------------------[function-doc]
 ;;Entrada: un complejo de cadenas de tipo producto tensorial.
 ;;Salida: el mismo complejo de cadenas visto como multicomplejo.
-(DEFUN TNPR-TO-MULTICOMPLEX (chcm)
+------------------------------------------------------------------------------"
 	(declare (type chain-complex chcm))
 	(the chain-complex
 		(let ((chcm
@@ -685,13 +847,138 @@ NIL
 				:cmpr (mmcm-cmpr-of-tnpr-1 chcm)
 				:basis (mmcm-basis-of-tnpr chcm)
 				:intr-dffr (mmcm-dffr-of-tnpr chcm)
-				:strt :gnrt 
+				:strt :gnrt
+				:bsgn (if (eq (bsgn chcm) nil)
+						nil
+						(gnrt-tnpr-to-mmulticomplex (bsgn chcm))
+					) 
 				:orgn (orgn chcm))))
 			(declare (type chain-complex chcm))
-			(slot-makunbound chcm 'bsgn)
 		chcm)))
 
+;;Este funciona pero es raro.
 
+"
+CAT 172 > inspect (tnpr-to-multicomplex tpr-triangles)
+
+[K3 Chain-Complex] is a CHAIN-COMPLEX
+CMPR       #<Closure (FLET RSLT) subfunction of TNSR-PRDC-CMPR 423000A66C>
+BASIS      #<Closure (FLET RSLT) subfunction of TNSR-PRDC-BASIS 423000A68C>
+BSGN       <TnPr (0) (0)>
+DFFR       [K4 Morphism (degree -1): K3 -> K3]
+GRMD       [K3 Chain-Complex]
+EFHM       #<unbound slot>
+IDNM       3
+ORGN       (TNSR-PRDC [K1 Chain-Complex] [K1 Chain-Complex])
+
+CAT 173 : Inspect 1 > :q
+[K3 Chain-Complex]
+
+CAT 174 > inspect tpr-triangles
+
+[K3 Chain-Complex] is a CHAIN-COMPLEX
+CMPR       #<Closure (FLET RSLT) subfunction of TNSR-PRDC-CMPR 423000A66C>
+BASIS      #<Closure (FLET RSLT) subfunction of TNSR-PRDC-BASIS 423000A68C>
+BSGN       <TnPr (0) (0)>
+DFFR       [K4 Morphism (degree -1): K3 -> K3]
+GRMD       [K3 Chain-Complex]
+EFHM       #<unbound slot>
+IDNM       3
+ORGN       (TNSR-PRDC [K1 Chain-Complex] [K1 Chain-Complex])
+
+CAT 176 > (dffr tpr-triangles)
+[K4 Morphism (degree -1): K3 -> K3]
+
+CAT 177 > (mmcm-dffr-of-tnpr tpr-triangles)
+#<interpreted function (HARLEQUIN-COMMON-LISP:SUBFUNCTION (FLET DIF) :UNKNOWN) 406001483C>
+
+CAT 178 > (basis tpr-triangles)
+#<Closure (FLET RSLT) subfunction of TNSR-PRDC-BASIS 423000A68C>
+
+CAT 179 > (mmcm-basis-of-tnpr tpr triangles)
+
+CAT 181 > (mmcm-basis-of-tnpr tpr-triangles)
+#<interpreted function (HARLEQUIN-COMMON-LISP:SUBFUNCTION (FLET BAS) :UNKNOWN) 4060014B6C>
+
+CAT 182 > (cmpr tpr-triangles)
+#<Closure (FLET RSLT) subfunction of TNSR-PRDC-CMPR 423000A66C>
+
+CAT 185 > (mmcm-cmpr-of-tnpr-1 tpr-triangles)
+#<interpreted function (HARLEQUIN-COMMON-LISP:SUBFUNCTION (FLET COMP) :UNKNOWN) 4060014F1C>
+"
+
+
+
+;;Ejemplo (es el primero del fichero de serre).
+
+"
+(progn
+  (setf B (sphere 3))
+  (setf k1 (chml-clss B 3))
+  (setf t1 (z-whitehead B k1))
+  (setf N (fibration-total t1))
+  (setf k0 (chml-clss N 4))
+  (setf t0 (z2-whitehead N k0))
+  (setf E (fibration-total t0)))
+
+(setf Ef (change-mmcm-to-gflcc E))
+
+(setf Df (change-mmcm-to-gflcc (rbcc (efhm e))))
+
+(gfltrcm-efcc-fltr Ef Df)
+(e2-gspsq-group Ef '(0 0) 5)
+
+Error: Cannot take CDR of <TnPr <TnPr * <<Abar>>> <<Abar[5 <<Abar[4 3]>>]>>>.
+  1 (abort) Return to top loop level 0.
+  
+(e2-gspsq-group Ef 0 0 5)
+
+Error: In a call to LENGTH: 0 (of type FIXNUM) is not of type SEQUENCE.
+  1 (abort) Return to top loop level 0.
+
+(e2-2gspsq-group Ef 0 0 5)
+
+Error: Cannot take CDR of <TnPr <TnPr * <<Abar>>> <<Abar[5 <<Abar[4 3]>>]>>>.
+  1 (abort) Return to top loop level 0.
+
+
+;;En el generalized-spectral.lisp
+
+(DEFUN E2-GSPSQ-GROUP (gfltrcm p1 p2 degr)
+  (declare 
+   (type generalized-filtered-chain-complex gfltrcm)
+   (type fixnum p1 p2 degr))
+  (let* ((point (list p1 p2))
+         (p (t-downset-list point))
+         (q (t-downset-list (2-points-add point (list 1 -1))))
+         (z (t-downset-list (2-points-add point (list 1 -2))))
+         (b (t-downset-list (2-points-add point (list 0 1)))))
+    (declare (type list point p q z b))
+    (gen-spsq-group gfltrcm z q p b degr)))
+
+;;en el de serre (yo creo que son inguales, pero el error es diferente).
+
+(DEFUN E2-2GSPSQ-GROUP (gfltrcm p1 p2 degr)
+  (declare 
+   (type generalized-filtered-chain-complex gfltrcm)
+   (type fixnum p1 p2 degr))
+  (let* ((point (list p1 p2))
+         (p (t-downset-list point))
+         (q (t-downset-list (2-points-add point (list 1 -1))))
+         (z (t-downset-list (2-points-add point (list 1 -2))))
+         (b (t-downset-list (2-points-add point (list 0 1)))))
+    (declare (type list point p q z b))
+    (gen-spsq-group gfltrcm z q p b degr)))
+
+
+
+"
+
+
+
+
+
+;;Cosas en sucio.
 ;;*1:Non-recursive alternative for fibrations.				
 ;;(DEFUN GNRT-TNPR-TO-MMULTICOMPLEX (tnpr)				
 ;;	(declare (type tnpr tnpr))
@@ -716,3 +1003,48 @@ NIL
 ;;					))
 ;;				)
 ;;				(the MmcGnrt (build-MmcGnrt l (push gnrt1 g))))))
+
+
+
+
+
+
+;;*2: función vieja. Alguna vez los "pasa" no me aparcen y no sé por qué. La función cambia el resutlado si la ejecuto más veces. Setq para n, si no lo pongo no funciona. Setq o let para cambiar el valor de una variable.
+;;(DEFUN ZN (n)
+;;	(build-poset :pocmpr
+;;		#'(lambda (p1 p2)
+;;			(declare (type list p1 p2)
+;;				(type fixnum n))
+;;			(let ((p11 (first p1))
+;;				(p12 (rest p1))
+;;				(p21 (first p2))
+;;				(p22 (rest p2)))
+;;				(declare (type fixnum p11 p21))
+;;				(progn 
+;;				(princ "pasa")
+;;				(if (= n 2)
+;;					(progn
+;;					(princ "pasa1")
+;;					(pocmpr (z2) p1 p2)
+;;					)
+;;					(if (= p11 p21)
+;;						(progn
+;;						(princ "Pasa2")
+;;						(setq n (- n 1))
+;;						(pocmpr (zn (- n 1)) p12 p22)
+;;						)
+;;						(if (> p11 p21)
+;;							(if (or (eql (pocmpr (zn (- n 1)) p12 p22) :greater) (eql (pocmpr (zn (- n 1)) p12 p22) :equal))
+;;								:greater
+;;								:undefined
+;;							)
+;;							(if (or (eql (pocmpr (zn (- n 1)) p12 p22) :less) (eql (pocmpr (zn (- n 1)) p12 p22) :equal))
+;;								:less
+;;								:undefined
+;;							)
+;;						)
+;;					)
+;;				))
+;;			)
+;;		)
+;;		:orgn '(zn)))
